@@ -120,12 +120,7 @@ class Notifier:
             return len(tokens)
         from firebase_admin import messaging
 
-        message = messaging.MulticastMessage(
-            tokens=tokens,
-            # Data only: the page's service worker shows it, so it never appears twice.
-            data={"title": title, "body": body, "link": link},
-            webpush=messaging.WebpushConfig(headers={"Urgency": "high", "TTL": "21600"}),
-        )
+        message = self.build_message(tokens, title, body, link)
         try:
             result = messaging.send_each_for_multicast(message, app=self.app)
         except Exception:  # noqa: BLE001 -- never fail the request that triggered it
@@ -140,6 +135,22 @@ class Notifier:
         if gone:
             store.atomic(lambda tx: self._drop(tx, uid, gone))
         return result.success_count
+
+    @staticmethod
+    def build_message(tokens, title, body, link="/"):
+        """Web tokens get data only (the page's service worker shows it, so it never appears twice).
+        iOS app tokens have no service worker, so APNs gets a visible alert; web tokens ignore `apns`."""
+        from firebase_admin import messaging
+
+        return messaging.MulticastMessage(
+            tokens=tokens,
+            data={"title": title, "body": body, "link": link},
+            webpush=messaging.WebpushConfig(headers={"Urgency": "high", "TTL": "21600"}),
+            apns=messaging.APNSConfig(
+                headers={"apns-priority": "10"},
+                payload=messaging.APNSPayload(aps=messaging.Aps(alert=messaging.ApsAlert(title=title, body=body), sound="default")),
+            ),
+        )
 
     @staticmethod
     def _drop(tx, uid, gone):
