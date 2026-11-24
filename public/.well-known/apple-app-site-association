@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["3Y8APYUG2G.space.darupoyo.app"],
+        "components": [
+          { "/": "/", "?": { "invite": "*" }, "comment": "招待リンク（invite-link.js）は iOS アプリで開く" }
+        ]
+      }
+    ]
+  }
+}
